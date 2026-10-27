@@ -1,0 +1,33 @@
+# Credenciales y configuración local
+.env
+.env.*
+!.env.example
+web/config.js
+*.pem
+*.key
+*.p12
+*.pfx
+credentials*.json
+service-account*.json
+
+# Exportaciones y datos de operación
+*.csv
+*.xlsx
+*.xls
+*.db
+*.sqlite*
+*.dump
+*.backup
+
+# Prototipo anterior de Apps Script, conservado solo localmente
+/*.gs
+/appsscript.json
+/Index.html
+/JavaScript.html
+/Styles.html
+
+# Dependencias y artefactos locales
+node_modules/
+.vercel/
+.DS_Store
+*.log
