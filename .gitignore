@@ -20,6 +20,7 @@ service-account*.json
 *.backup
 
 # Prototipo anterior de Apps Script, conservado solo localmente
+/respaldo-apps-script/
 /*.gs
 /appsscript.json
 /Index.html

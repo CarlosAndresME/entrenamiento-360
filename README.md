@@ -1,26 +1,55 @@
 # Entrenamiento 360
 
-Primera iteración de una aplicación web para campañas y call center. La versión actual usa una interfaz web estática y Supabase (PostgreSQL y Auth), con configuración para desplegar en Vercel. La carpeta `web` es el frontend; `supabase/schema.sql` crea la base y los procedimientos. Los archivos `.gs` de la raíz pertenecen al prototipo anterior y no forman parte de esta versión.
+Aplicación web para planificar campañas de formación, organizar la gestión de contactos y medir la cobertura de droguerías por ciudad y módulo. El proyecto se encuentra en construcción y busca centralizar una operación que combina agenda de profesionales, call center y seguimiento posterior a cada evento.
 
-## Configuración de prueba
+## El problema
 
-1. Cree un proyecto nuevo en Supabase. En el editor SQL ejecute completo `supabase/schema.sql`. Es una instalación inicial para una base nueva; no está diseñada para repetirse sobre una base existente.
-2. En Authentication cree los usuarios autorizados. Desactive el registro público si no lo necesita. Obtenga el UUID de cada usuario en Authentication e inserte su perfil desde el editor SQL: `insert into public.perfiles (id, rol) values ('UUID-DEL-USUARIO', 'admin');`. Los roles disponibles son `admin`, `analista` y `call`. Admin y analista gestionan campañas; call solo ve campañas asignadas. Para asignar una campaña a call: `insert into public.asignaciones_call (usuario, id_campana) values ('UUID-DEL-USUARIO', 'CAMP-000001');`.
-3. Importe los datos existentes mediante CSV a Supabase. `droguerias` combina el código, dirección y contacto de `Aso_Drog_Activo` con municipio, departamento, latitud y longitud de `E360_Droguerias`; `planes` recibe CODIGO, MODULO, NIVEL y ESTADO GENERAL de `Plan_de_Trabajo`. Exporte y cruce los datos por código antes de importar; conserve códigos como texto, incluidos ceros iniciales. Importe primero `droguerias`, después `planes`, y agregue registros a `profesionales`. No se geocodifica de nuevo. La carga y sincronización automática desde Sheets no están implementadas.
-4. Revise `parametros` en el editor de tablas. Los montos y las tipificaciones provienen del demo y son provisionales. Ajuste los estados de plan abierto, el bloqueo por deuda y los montos antes de operar; la cobertura usa 80 % por defecto. El tiempo en minutos es la estimación del demo, no una ruta real.
-5. Para desarrollo local copie `web/config.example.js` como `web/config.js` y escriba la URL y la clave **publicable** de Supabase. Para Vercel configure las variables `SUPABASE_URL` y `SUPABASE_PUBLISHABLE_KEY`; el proceso de construcción genera `web/config.js`. Estos valores son visibles en el navegador. Nunca use una clave secreta o `service_role` ni la contraseña de base de datos. Configure las URLs permitidas en Supabase Auth para el dominio de la aplicación.
-6. Para publicar en Vercel, suba el proyecto a un repositorio e impórtelo. `vercel.json` construye y publica la carpeta `web`. Vercel Hobby está limitado a uso personal no comercial; revise el plan necesario para su operación. Puede alojar estos mismos archivos estáticos en otro proveedor compatible.
+Una campaña no siempre parte de un radio geográfico: también puede comenzar con una lista de códigos previamente acordada. Además, ofrecer un módulo en una ciudad no significa haber cubierto toda su base. Entrenamiento 360 aborda ambos casos: filtra la elegibilidad de cada droguería y mide la cobertura por ciudad, tema y nivel.
 
-### Alternativa: Cloudflare Pages
+## Funcionalidades de la primera iteración
 
-Conecte el repositorio privado a Cloudflare Pages, seleccione `main`, configure como comando de compilación `node scripts/build.mjs` y como directorio de salida `web`. En las variables de entorno del proyecto indique `SUPABASE_URL` y `SUPABASE_PUBLISHABLE_KEY` con los datos públicos de Supabase. Cada cambio publicado en GitHub puede generar un nuevo despliegue. Crear el sitio y otorgar acceso al repositorio requiere una cuenta y sus permisos en Cloudflare. Configure Supabase y cree una cuenta individual para cada usuario antes de utilizarlo.
+- Creación, consulta, edición y eliminación de campañas antes de iniciar su gestión.
+- Segmentación por distancia al evento o por códigos seleccionados, pegados o elegidos por municipio; vista previa de candidatos y exclusiones.
+- Exclusión de droguerías con planes abiertos y, según configuración, deudas pendientes.
+- Registro de una actividad en la agenda del profesional al crear la campaña.
+- Gestión de contactos y asistencia por campaña, con acceso limitado a las campañas asignadas a cada agente de call center.
+- Registro único de asistencia por droguería, tema y nivel; consulta de cobertura regional; evaluación posterior de cobros por inasistencia o proceso incompleto.
 
-Abrir `web/index.html` haciendo doble clic permite ver la pantalla, pero no inicia el servicio ni crea usuarios. La cuenta de GitHub no es la cuenta de la aplicación. Si falta configuración, la pantalla explica que el administrador debe conectar Supabase y crear los usuarios.
+El cálculo en minutos es una estimación basada en distancia, no una ruta real. Las reglas de montos y tipificaciones son configurables y deben validarse antes de su uso operativo.
 
-## Alcance y limitaciones
+## Arquitectura
 
-- La segmentación admite distancia y códigos manuales, pegados y primeras N aptas. Al guardar, la base se recalcula en el servidor; campaña, base y agenda se guardan en una transacción de PostgreSQL.
-- La asistencia única por código, tema y nivel alimenta la cobertura calculada en consulta; los cobros se crean de forma explícita después del evento y son únicos por código, concepto y campaña. Para proceso incompleto se busca un plan del mismo tema y nivel con estado `Cerrado`; confirme esa regla antes de generar cobros reales.
-- La seguridad se basa en Auth, perfiles, asignaciones de call center y procedimientos con autorización. Las tablas tienen RLS habilitado y no se conceden permisos de acceso directo a usuarios de la aplicación. Los permisos administrativos de Supabase deben reservarse a personas autorizadas.
-- Edición o eliminación solo antes de iniciar gestión. Las correcciones de asistencia y anulación de cobros requieren una siguiente iteración. Dashboard completo, planificación regional, insights, edición de catálogo y metas, drag & drop y sincronización automática también están pendientes.
-- Es una base de implementación, no una instalación ya desplegada: antes de producción pruebe en un proyecto Supabase de prueba con datos representativos, verifique permisos por rol, revise el tratamiento de datos personales y establezca respaldos. La capa gratuita de Supabase no incluye respaldos automáticos y puede pausar proyectos inactivos.
+La interfaz está construida con HTML, CSS y JavaScript. Supabase proporciona autenticación y PostgreSQL; las operaciones críticas se realizan mediante funciones de base de datos que validan permisos y ejecutan los cambios en una transacción. Las tablas tienen Row Level Security habilitado y la aplicación no recibe acceso directo a ellas.
+
+```text
+Navegador ── HTTPS ──> Sitio estático
+    │
+    └── Supabase Auth + funciones autorizadas ──> PostgreSQL
+```
+
+El proyecto está preparado para publicar la interfaz en Cloudflare Pages o Vercel. El repositorio contiene el código y la estructura de datos, sin credenciales ni bases de contactos.
+
+| Ruta | Contenido |
+| --- | --- |
+| `web/` | Interfaz, conexión con Supabase y ejemplo de configuración pública |
+| `supabase/schema.sql` | Modelo de datos, reglas de acceso y funciones |
+| `scripts/build.mjs` | Generación de configuración para el despliegue |
+
+## Estado del proyecto
+
+Esta es una primera iteración y todavía no hay un despliegue público operativo. Quedan pendientes las pruebas integrales sobre una instancia de Supabase, la carga de datos reales, el dashboard completo, la edición de catálogo y metas, la planificación regional y la agenda con arrastrar y soltar. También están pendientes los flujos de corrección de asistencia y anulación de cobros.
+
+## Ejecutar en un entorno de prueba
+
+1. Cree un proyecto de prueba en Supabase y ejecute `supabase/schema.sql` en el editor SQL. El script está pensado para una base nueva y no es una migración repetible.
+2. Cree los usuarios en Supabase Auth y agregue sus perfiles a `public.perfiles`. Los roles disponibles son `admin`, `analista` y `call`. Las asignaciones de campañas para call center se registran en `public.asignaciones_call`. Desactive el registro público si no se necesita.
+3. Cargue profesionales y datos de prueba en `profesionales`, `droguerias` y `planes`. Las coordenadas existentes se importan con las droguerías; el proyecto no incluye un geocodificador. No suba bases reales ni exportaciones al repositorio.
+4. Copie `web/config.example.js` a `web/config.js` y complete la URL del proyecto y su clave publicable. Sirva la carpeta `web` con un servidor local. Las cuentas de la aplicación se crean en Supabase y no son las credenciales de GitHub.
+
+Para Cloudflare Pages, conecte el repositorio, seleccione `main`, use `node scripts/build.mjs` como comando de compilación y `web` como directorio de salida. Configure `SUPABASE_URL` y `SUPABASE_PUBLISHABLE_KEY` en el entorno de despliegue. También es posible utilizar la configuración incluida para Vercel; compruebe las condiciones del plan aplicable al uso del proyecto.
+
+## Seguridad y datos
+
+`web/config.js`, variables de entorno, exportaciones y respaldos locales están excluidos mediante `.gitignore`. La URL y la clave publicable se distribuyen al navegador; nunca deben sustituirse por claves secretas, `service_role` o contraseñas. El archivo `.gitignore` no elimina información que ya se haya incorporado al historial.
+
+Antes de utilizar datos reales se necesitan pruebas de autorización por rol y concurrencia, validación de las reglas de negocio, tratamiento adecuado de datos personales y una estrategia de respaldo. El esquema y la aplicación todavía deben validarse de extremo a extremo en un entorno de prueba.
