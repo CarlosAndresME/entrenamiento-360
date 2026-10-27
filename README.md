@@ -11,6 +11,12 @@ Primera iteración de una aplicación web para campañas y call center. La versi
 5. Para desarrollo local copie `web/config.example.js` como `web/config.js` y escriba la URL y la clave **publicable** de Supabase. Para Vercel configure las variables `SUPABASE_URL` y `SUPABASE_PUBLISHABLE_KEY`; el proceso de construcción genera `web/config.js`. Estos valores son visibles en el navegador. Nunca use una clave secreta o `service_role` ni la contraseña de base de datos. Configure las URLs permitidas en Supabase Auth para el dominio de la aplicación.
 6. Para publicar en Vercel, suba el proyecto a un repositorio e impórtelo. `vercel.json` construye y publica la carpeta `web`. Vercel Hobby está limitado a uso personal no comercial; revise el plan necesario para su operación. Puede alojar estos mismos archivos estáticos en otro proveedor compatible.
 
+### Alternativa: Cloudflare Pages
+
+Conecte el repositorio privado a Cloudflare Pages, seleccione `main`, configure como comando de compilación `node scripts/build.mjs` y como directorio de salida `web`. En las variables de entorno del proyecto indique `SUPABASE_URL` y `SUPABASE_PUBLISHABLE_KEY` con los datos públicos de Supabase. Cada cambio publicado en GitHub puede generar un nuevo despliegue. Crear el sitio y otorgar acceso al repositorio requiere una cuenta y sus permisos en Cloudflare. Configure Supabase y cree una cuenta individual para cada usuario antes de utilizarlo.
+
+Abrir `web/index.html` haciendo doble clic permite ver la pantalla, pero no inicia el servicio ni crea usuarios. La cuenta de GitHub no es la cuenta de la aplicación. Si falta configuración, la pantalla explica que el administrador debe conectar Supabase y crear los usuarios.
+
 ## Alcance y limitaciones
 
 - La segmentación admite distancia y códigos manuales, pegados y primeras N aptas. Al guardar, la base se recalcula en el servidor; campaña, base y agenda se guardan en una transacción de PostgreSQL.

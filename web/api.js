@@ -19,5 +19,7 @@ function signOut(){sessionStorage.removeItem('e360_session');session=null;locati
 function start(){
  const login=document.getElementById('login'), app=document.getElementById('application');
  document.getElementById('login-form').onsubmit=async e=>{e.preventDefault();try{await signIn(document.getElementById('email').value,document.getElementById('password').value);login.hidden=true;app.hidden=false;refresh()}catch(err){document.getElementById('login-error').textContent=err.message}};
- if(session){login.hidden=true;app.hidden=false;refresh()}else if(!validConfig())document.getElementById('login-error').textContent='Configure Supabase para iniciar.';
+ if(!validConfig()){document.getElementById('login-error').textContent='La aplicación todavía no está conectada a Supabase. Solicita al administrador que configure el servicio y cree tu usuario.';document.querySelector('#login-form button').disabled=true;return}
+ if(location.protocol==='file:'){document.getElementById('login-error').textContent='Abra la aplicación desde su dirección web o un servidor local; no directamente desde el archivo.';document.querySelector('#login-form button').disabled=true;return}
+ if(session){login.hidden=true;app.hidden=false;refresh()}
 }
